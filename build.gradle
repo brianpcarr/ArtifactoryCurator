@@ -51,14 +51,14 @@ dependencies {
 }
 
 task capsule(type: Jar, dependsOn: jar) {
-    archiveName = 'chngName-capsule.jar'
+    archiveName = 'artifactoryProcess-capsule.jar'
     from jar
     from { configurations.runtime }
     from { configurations.capsule.collect { zipTree(it) } }
     manifest {
         attributes(
             'Main-Class'         : 'Capsule',
-            'Application-Class'  : 'chngName.ChngName',
+            'Application-Class'  : 'artifactoryProcess.ArtifactoryProcess',
             'Application-Name'   : project.name,
             'Application-Version': project.version,
             'System-Properties'  : 'org.jboss.logging.provider=slf4j'

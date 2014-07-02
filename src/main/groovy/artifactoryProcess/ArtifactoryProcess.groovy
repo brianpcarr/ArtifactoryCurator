@@ -1,9 +1,9 @@
-package chngName
+package artifactoryProcess
 
 import groovy.util.logging.Slf4j
 
-class ChngName {
-    private  static final PREFIX = "chngName"
+class ArtifactoryProcess {
+    private  static final PREFIX = "artifactoryProcess"
 
     @SuppressWarnings(["SystemExit", "CatchThrowable"])
     static void main(String... args) {
@@ -24,7 +24,7 @@ class ChngName {
     }
 
     private static showUsage() {
-        System.err.println( "USAGE: java -jar chngName.jar CONFIG_FILE" )
+        System.err.println( "USAGE: java -jar artifactoryProcess.jar CONFIG_FILE" )
     }
 
     private static void run() {
