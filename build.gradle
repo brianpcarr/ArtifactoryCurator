@@ -1,0 +1,71 @@
+apply from: "gradle/dependencies.gradle"
+
+buildscript {
+    repositories {
+        maven {
+            name "artifactory01"
+            url "http://artifactory01.nexus.commercehub.com/artifactory/libs-release"
+        }
+    }
+    dependencies {
+        classpath "com.netflix.nebula:gradle-info-plugin:1.9.5"
+        classpath "com.github.townsfolk:gradle-release:1.2"
+    }
+}
+
+repositories {
+    maven {
+        name "artifactory01"
+        url "http://artifactory01.nexus.commercehub.com/artifactory/libs-release"
+    }
+}
+
+apply plugin: "release"
+apply plugin: "idea"
+apply plugin: "project-reports"
+apply from: "gradle/idea/idea.gradle"
+apply from: "gradle/groovyModule.gradle"
+
+configurations {
+    capsule
+
+    all {
+        resolutionStrategy {
+            eachDependency { DependencyResolveDetails details ->
+                switch (requested.name) {
+                    case "commons-logging": useTarget "org.slf4j:jcl-over-slf4j:${commonVersions.slf4j}"; break
+                    case "groovy-all": useTarget "${requested.group}:groovy:${requested.version}"; break
+                }
+                switch (requested.group) {
+                    case "org.slf4j": useVersion commonVersions.slf4j; break
+                    case "org.codehaus.groovy": useVersion commonVersions.groovy; break
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    compile "org.slf4j:jul-to-slf4j:${commonVersions.slf4j}"
+    capsule "co.paralleluniverse:capsule:0.5.0"
+}
+
+task capsule(type: Jar, dependsOn: jar) {
+    archiveName = 'chngName-capsule.jar'
+    from jar
+    from { configurations.runtime }
+    from { configurations.capsule.collect { zipTree(it) } }
+    manifest {
+        attributes(
+            'Main-Class'         : 'Capsule',
+            'Application-Class'  : 'chngName.ChngName',
+            'Application-Name'   : project.name,
+            'Application-Version': project.version,
+            'System-Properties'  : 'org.jboss.logging.provider=slf4j'
+        )
+    }
+}
+
+artifacts {
+    archives capsule
+}

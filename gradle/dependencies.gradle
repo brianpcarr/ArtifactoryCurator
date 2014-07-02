@@ -1,0 +1,10 @@
+ext {
+    commonVersions = [
+        groovy: "2.3.0",
+        dropwizard: "0.7.0",
+        guice: "3.0",
+        slf4j: "1.7.7",
+        sqlserverDriver: "4.0",
+        jschAgentProxy: "0.0.7"
+    ]
+}
