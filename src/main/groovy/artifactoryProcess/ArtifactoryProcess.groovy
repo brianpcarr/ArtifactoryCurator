@@ -20,7 +20,7 @@ import org.jfrog.artifactory.client.ArtifactoryClient;
 import org.jfrog.artifactory.client.RepositoryHandle;
 import com.xlson.groovycsv.CsvParser;
 
-/*
+
 @Grapes([
         @GrabResolver(name='artifactory01.nexus.commercehub.com', root='http://artifactory01.nexus.commercehub.com/artifactory/ext-release-local/', m2Compatible=true),
         @Grab(group='net.sf.json-lib', module='json-lib', version='2.4', classifier='jdk15' ),
@@ -39,7 +39,7 @@ import com.xlson.groovycsv.CsvParser;
         @Grab(group='org.jfrog.artifactory.client', module='artifactory-java-client-services', version='0.13'),
         @GrabExclude(group='org.codehaus.groovy', module='groovy-xml')
 ])
-*/
+
 
 /**
  * This groovy class is meant to mark artifacts for release and clean up old versions.

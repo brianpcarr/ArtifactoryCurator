@@ -51,8 +51,8 @@ configurations {
 
 dependencies {
     ivy "org.apache.ivy:ivy:2.3.0"
-    compile "org.apache.ivy:ivy:2.2.0"
-    compile "org.codehaus.groovy:groovy-all:2.3.0"
+    compile "org.apache.ivy:ivy:2.3.0"
+    compile "org.codehaus.groovy:groovy-all:2.3.2"
     compile "org.slf4j:jul-to-slf4j:${commonVersions.slf4j}"
     compile "org.codehaus.groovy.modules.http-builder:http-builder:0.7"
     compile "net.sf.json-lib:json-lib:2.4:jdk15"
