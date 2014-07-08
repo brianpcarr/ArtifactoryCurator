@@ -167,10 +167,10 @@ class ArtifactoryProcess {
         } catch(CmdLineException ex) {
             System.err.println(ex.getMessage());
             System.err.println();
-            System.err.println("groovy.bat ArtifactoryCleanup.groovy [--dry-run] [--full-log] --web-server http://artifactory01 --repository libs-release-prod Version1 ...)");
+            System.err.println("groovy ArtifactoryProcess.groovy [--dry-run] [--full-log] --function <func> --value <val> --web-server http://YourWebServer --repository libs-release-prod --domain <com/YourOrg> Version1 ...");
             parser.printUsage(System.err);
             System.err.println();
-            System.err.println("  Example: groovy ArtifactoryCleanup.groovy"+parser.printExample(ExampleMode.ALL)+" 1.0.1 1.0.2");
+            System.err.println("  Example: groovy ArtifactoryProcess.groovy"+parser.printExample(ExampleMode.ALL)+" 1.0.1 1.0.2");
             System.err.println();
             System.err.println("  Supported functions include ${validFunctions}" );
             System.err.println();
