@@ -3,7 +3,11 @@ apply from: "gradle/dependencies.gradle"
 buildscript {
     repositories {
 //      mavenCentral()
-        mavenRepo(url: 'http://jcenter.bintray.com')  
+        maven {
+            name "jcenter"
+            url "http://jcenter.bintray.com"
+        }
+
     }
     dependencies {
         classpath "com.netflix.nebula:gradle-info-plugin:1.9.5"
@@ -13,7 +17,10 @@ buildscript {
 
 repositories {
 //      mavenCentral()
-        mavenRepo(url: 'http://jcenter.bintray.com')  
+        maven {
+            name "jcenter"
+            url "http://jcenter.bintray.com"
+        }
 }
 
 apply plugin: "release"
