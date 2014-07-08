@@ -1,6 +1,6 @@
 Invoke with:
 
-groovy ArtifactoryProcess.groovy [--dry-run] [--full-log] --function <func> --value <val> --web-server http://YourWebServer --repository libs-release-prod --domain <com/YourOrg> Version1 ...
+groovy ArtifactoryProcess.groovy [--dry-run] [--full-log] --function <func> --value <val> --web-server http://YourWebServer --repository yourRepoName --domain <com/YourOrg> Version1 ...
  --domain domain         : Name of the domain to scan.
  --dry-run               : Don't change anything; just list what would be done
  --full-log              : Log miscellaneous steps for processing artifacts
@@ -25,8 +25,8 @@ The ArtifactoryProcess script can be used in a couple of main modes as well as
 a sort of hyper mode.
 
 The first mode is to mark sets of artifacts as being in a particular state, e.g.
-groovy.bat ArtifactoryProcess.groovy --function mark --value production --web-server http://artifactory01/ --repository libs-release-prod --domain <com.YourOrg> --userName fill-in-userID --password fill-in-password 1.0.45-zdf
-would mark all artifacts in libs-release-prod with a version of 1.0.45-zdf as
+groovy.bat ArtifactoryProcess.groovy --function mark --value production --web-server http://YourWebServer/ --repository yourRepoName --domain <com.YourOrg> --userName fill-in-userID --password fill-in-password 1.0.45-zdf
+would mark all artifacts in yourRepoName with a version of 1.0.45-zdf as
 being in production.
 
 The other mode is to cleanup old artifacts.  This could be done in two stages
@@ -44,3 +44,12 @@ read from a comma separated value (csv) file.  In this case the first line will
 name the parameters which are to be specified and the values for each step will
 be in the following lines.  It is recommended that parameters like user ID and 
 password be passed on the command line, not in the config file.
+
+To run the script, it can be run from the git root as suggested above.  However,
+this requires that groovy 2.3 or higher be installed (parameters to closure 
+support was added then and is required for the closure implementation used).
+This requires that your JVM be at least 1.7.  If you do not wish to install
+groovy on your server, you can comment out the @Grapes sections at the top (oh 
+for the conditional compilations of c days gone) and build the required jar file
+with 'gradlew build'.  You can then run the utility with something like:
+java -jar build/libs/artifactoryProcess-run.jar --dry-run --full-log --function mark --value tested --web-server http://YourWebServer/ --repository yourRepoName  --domain <com.YourOrg> --userName fill-in-userID --password fill-in-password 1.0.45-zdf
