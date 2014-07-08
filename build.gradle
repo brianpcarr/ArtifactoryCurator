@@ -2,7 +2,8 @@ apply from: "gradle/dependencies.gradle"
 
 buildscript {
     repositories {
-        mavenCentral()
+//      mavenCentral()
+        mavenRepo(url: 'http://jcenter.bintray.com')  
     }
     dependencies {
         classpath "com.netflix.nebula:gradle-info-plugin:1.9.5"
@@ -11,20 +12,8 @@ buildscript {
 }
 
 repositories {
-        mavenCentral()
-        maven {
-            name "repo1.maven.org"
-            url "http://repo1.maven.org/maven2"
-        }
-        maven {
-            name "maven-repository.com"
-            url "http://maven-repository.com/artifact/"
-        }
-        maven {
-            name "artifactory01"
-            url "http://artifactory01.nexus.commercehub.com/artifactory/libs-release"
-        }
-
+//      mavenCentral()
+        mavenRepo(url: 'http://jcenter.bintray.com')  
 }
 
 apply plugin: "release"
