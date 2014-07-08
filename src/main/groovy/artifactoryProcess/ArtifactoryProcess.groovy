@@ -47,19 +47,20 @@ import com.xlson.groovycsv.CsvParser;
  * The first mode is to mark artifacts with properties such as tested, releasable and production.
  *
  * The second mode could be to mark artifacts for removal based on FIFO counts of artifacts in the
- * states defined in the maxInState.csv file provided.  If you say want at most 10 versions of an
- * artifact in the production state and there are more than that, then the oldest versions will be
+ * states defined in the maxInState.csv file provided.  If you say want at most 5 versions of an
+ * artifact in the production state and there are more than that, then the oldest versions could be
  * marked for removal.
  *
- * The third mode could be the actual deletion of any artifacts which were marked for removal.  The delay is to allow human intervention before wholesale deletion.
+ * The third mode could be the actual deletion of any artifacts which were marked for removal.
+ * The delay is to allow human intervention before wholesale deletion.
  *
- * The versionsToUse is an array of strings that are the strart of builds that should be processed.
+ * The versionsToUse is an array of strings that are the start of builds that should be processed.
  *
- * There are two additional options.  The first is the dryRun option. This way you can get an overview of what will be processed. If set
- * specified, the artifacts will be processed.
+ * There are two additional options.  The first is the dryRun option. This way you can get
+ * an overview of what will be processed. If specified, no artifacts will be altered.
  *
  * Usage example
- *   groovy.bat Artifactoryprocess.groovy --dry-run --web-server http://artifactory01/artifactory/ --repository libs-release-prod 1.0.1 1.0.2
+ *   groovy ArtifactoryProcess.groovy --dry-run --function mark --value production --must-have releasable --web-server http://yourWebServer/artifactory/ --domain <com.YourOrg> --repository libs-release-prod 1.0.1 1.0.2
  *  
  * @author Brian Carr (snippets from Jettro Coenradie, David Carr and others)
  */
