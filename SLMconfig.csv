@@ -1,2 +1,7 @@
 function,value,mustHave,maxInState,domain,comment
+delete,,deletable,slmStates.csv,com/commercehub/rolodex, slm rolodex mark next deletes
+delete,,deletable,slmStates.csv,com/commercehub/apartment, slm apartment mark next deletes
+delete,,deletable,slmStates.csv,com/commercehub/oddservice, slm oddservice mark next deletes
 mark,deletable,,slmStates.csv,com/commercehub/rolodex, slm rolodex cleanup
+mark,deletable,,slmStates.csv,com/commercehub/apartment, slm apartment cleanup
+mark,deletable,,slmStates.csv,com/commercehub/oddservice, slm oddservice cleanup
