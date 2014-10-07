@@ -1,0 +1,2 @@
+function,value,mustHave,maxInState,domain,comment
+mark,deletable,,slmStates.csv,com/commercehub/rolodex, slm rolodex cleanup
