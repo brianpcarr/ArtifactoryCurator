@@ -82,7 +82,7 @@ class ArtifactoryProcess {
     String function;
 
 //  eg  --value production
-    @Option(name='--value', metaVar='value', usage="value to use with function above, often required")
+    @Option(name='--value', metaVar='value', usage="value to use with certain functions, often required")
     String value;
 
 //  eg  --must-have releasable
@@ -96,6 +96,18 @@ class ArtifactoryProcess {
 //  eg  --maxInState MaxInState.csv
     @Option(name='--maxInState', metaVar='maxInState', usage="name of csv file with states and max counts, optional")
     String maxInState;
+
+//  eg  --maxDay 14
+    @Option(name='--maxDay', metaVar='maxDay', usage="max days to mark / delete artifact (ignores counts), optional")
+    Float maxDay;
+
+//  eg  --minDay 3
+    @Option(name='--minDay', metaVar='minDay', usage="min days before mark / delete artifacts (ignores counts), optional")
+    Float minDay;
+
+//  eg  --offsetDay 1
+    @Option(name='--offsetDay', metaVar='offsetDay', usage="offset for min and max days to adjust for marking delays")
+    Float offsetDay;
 
 //  eg  --web-server 'http://artifactory01/'
     @Option(name='--web-server', metaVar='webServer', usage='URL to use to access Artifactory server')
@@ -120,6 +132,11 @@ class ArtifactoryProcess {
     @Argument
     ArrayList<String> versionsToUse = new ArrayList<String>();
 
+    class Branch{
+        String branchName;
+        List< PathAndDate > pathAndDate;
+    }
+
     class PathAndDate{
         String path;
         Date dtCreated;
@@ -127,7 +144,10 @@ class ArtifactoryProcess {
     class StateRecord {
         String state;
         int cnt;
-        List< PathAndDate > pathAndDate;
+        float minDays;
+        float maxDays;
+        String divider;
+        List< Branch > branches;
     }
 
     @SuppressWarnings(["SystemExit", "CatchThrowable"])
@@ -249,18 +269,40 @@ class ArtifactoryProcess {
     def checkParms() {
         if( !noValue( maxInState ) ) {
             stateSet.clear();                         // Throw away any previous states from last step
+            if( fullLog ) println( "Parsing ${maxInState}." )
             File stateFile = new File( maxInState );
             def RC = stateFile.withReader {
                 CsvIterator csvFile = CsvParser.parseCsv( it );
                 for( csvRec in csvFile ) {
-                    String state = csvRec.properties.values[ 0 ];
-                    String strCnt = csvRec.properties.values[ 1 ];
-                    if( fullLog ) println( "State ${state} allowed ${strCnt}" );
+
+                    /* Set up default values for this new record. */
+
+                    String state = "";
                     int count = 0;
-                    if( strCnt.integer ) count = strCnt.toInteger();
+                    float minDays = 0;
+                    float maxDays = 0;
+                    String divider = "";
+
+                    /* Pull out any values provided (templated code). */
+
+                    Map cols = csvRec.properties.columns;
+//                  def hasState = cols.containsKey( 'state' );  // Useful if exploring csv objects
+                    if( cols.containsKey( 'State'   ) && !noValue( csvRec.State   ) ) state      = csvRec.State     ;
+                    if( cols.containsKey( 'Divider' ) && !noValue( csvRec.Divider ) ) divider    = csvRec.Divider   ;
+                    if( cols.containsKey( 'Count'   ) && !noValue( csvRec.Count   ) && csvRec.Count.integer ) count      = csvRec.Count.toInteger();   ;
+                    if( cols.containsKey( 'MinDays' ) && !noValue( csvRec.MinDays ) && csvRec.MinDays.float ) minDays    = csvRec.MinDays.toFloat();   ;
+                    if( cols.containsKey( 'MaxDays' ) && !noValue( csvRec.MaxDays ) && csvRec.MaxDays.float ) maxDays    = csvRec.MaxDays.toFloat();   ;
                     if( count < 0 ) count = 0;
+                    if( minDays < 0 ) minDays = 0;
+                    if( maxDays < 0 ) maxDays = 0;
+
+                    List pathAndDate = [];
+                    List branches = [ pathAndDate ]
+
+                    if( fullLog ) println( "State ${state} allowed ${count} within ${minDays} and ${maxDays} days, branches by ${divider}" );
                     // Iterator lies and claims there is a next when there isn't.  Force break on empty state.
-                    stateSet.add( new StateRecord( state: state, cnt: count, pathAndDate: [] ) );
+                    stateSet.add(
+                        new StateRecord( state: state, divider: divider, cnt: count, minDays: minDays, maxDays: maxDays, branches: branches ) );
                 }
             }
         }
@@ -321,6 +363,7 @@ class ArtifactoryProcess {
     private int processArtifactsRecursive( String path ) {
         ItemHandle item = repo.folder( path );
         Folder fldr;
+        Boolean foundEndNode = false;
         try{
             fldr = item.info()
         } catch( Exception e ) {
@@ -346,8 +389,9 @@ class ArtifactoryProcess {
                 processed = true;
             }
             if( stateSet.size() > 0 ) {
-                if( isEndNode(kid.uri) ) {
-                    processed = groupFolders(path + kid.uri);
+                if( isEndNode( kid.uri ) ) {
+                    foundEndNode = true;
+                    processed = putInGroup(path + kid.uri);
                 }
             } else {
                 versionsToUse.find { version ->
@@ -365,7 +409,7 @@ class ArtifactoryProcess {
 
         /* If we are counting number in each state, our lists should be all set now */
 
-        if( stateSet.size() > 0 ) {
+        if( foundEndNode && stateSet.size() > 0 ) {
             processSet();
         }
 
@@ -395,20 +439,42 @@ class ArtifactoryProcess {
     }
 
 
-    private boolean groupFolders( String path ) {
+    private boolean putInGroup( String path ) {
         Map<String, List<String>> props;
-        stateSet.find { rec ->
+    //  stateSet.find { rec ->     // Find doesn't reset with next end node, back to basics
+        for( rec in stateSet ) {
             ItemHandle folder = repo.folder( path );
-            if( rec.state.size() > 0 ) {
+            if( rec.state.size() > 0 ) {  // If this is not the last catch all category (empty string)
                 props = folder.getProperties( rec.state );
             }
-            if( rec.state.size() <= 0 || props.size() > 0 ) {
+            if( rec.state.size() == 0 || props.size() > 0 ) { // If last entry or found match
+
+                /* Create a record for this artifact. */
+
                 PathAndDate nodePathDate = new PathAndDate();
                 nodePathDate.path = path;
                 nodePathDate.dtCreated = folder.info().lastModified;
-                rec.pathAndDate.add( nodePathDate );  // process this one
-                return true; // No others are interest, break out of iterator
-            } else return false;  // On to next iterator
+
+                /* Create / Find branch specific grouping if has a branch */
+
+                String sBranch = "";         // Assume no branch requested / found.
+                if( rec.divider != null && rec.divider.size() > 0 ) {
+                    Integer ndx = path.lastIndexOf( rec.divider );  // Do we have branch divider?
+                    if( ndx >= 0 && ndx + rec.divider.size() < path.size() ) {
+                        sBranch = path.substring(ndx + rec.divider.size());
+                    }
+                }
+                Branch branch = rec.branches.find { it.branchName == sBranch };
+                if( branch == null ) {
+                      branch = new Branch( branchName: sBranch, pathAndDate: [] );
+                      rec.branches.add( branch );
+                }
+
+                /* Now add this artifact into the right group */
+
+                branch.pathAndDate.add( nodePathDate );  // process this one
+                break;  // return true; // No other states matter if matched, break out of iterator
+            } // else return false;  // On to next iterator
 
         }
         return true;                              // We always process all nodes which are end nodes
@@ -416,20 +482,23 @@ class ArtifactoryProcess {
 
 
     private boolean processSet() {
-        for( set in stateSet ) {
-            int del = set.cnt;
-            if( set.pathAndDate.size() < del ) {
-                del = set.pathAndDate.size() }
-            else {
-                set.pathAndDate.sort() { a,b -> b.dtCreated <=> a.dtCreated };  // Sort newest first to preserve newest
-            }
-            while( del > 0 ) {
-                set.pathAndDate.remove( 0 );
-                del--;
-            }
-            while( set.pathAndDate.size() > 0 ) {
-                numProcessed += processItem( set.pathAndDate[ 0 ].path );
-                set.pathAndDate.remove( 0 );
+        for( state in stateSet ) {
+            for( set in state.branches ) {
+                int keep = state.cnt;
+                if( keep == 0 || set.pathAndDate.size() < keep ) {  // If count to keep is zero, keep all
+                    keep = set.pathAndDate.size()
+                } else {
+                    set.pathAndDate.sort() { a, b -> b.dtCreated <=> a.dtCreated };
+                    // Sort newest first to preserve newest
+                }
+                while( keep > 0 ) {
+                    set.pathAndDate.remove(0);
+                    keep--;
+                }
+                while( set.pathAndDate.size() > 0 ) {
+                    numProcessed += processItem(set.pathAndDate[0].path);
+                    set.pathAndDate.remove(0);
+                }
             }
         }
         return true;
