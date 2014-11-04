@@ -69,7 +69,7 @@ import com.xlson.groovycsv.CsvParser;
 
 class ArtifactoryProcess {
     public static final Set< String > validFunctions = [ 'mark', 'delete', 'clear', 'download', 'config', 'repoPrint', 'size' ];
-    public static final Set< String > validParameters = [ 'function', 'value', 'mustHave', 'targetDir', 'maxInState', 'webServer', 'repoName', 'domain', 'userName', 'password' ];
+    public static final Set< String > validParameters = [ 'function', 'value', 'mustHave', 'targetDir', 'maxInState', 'webServer', 'repoName', 'domain', 'userName', 'password', 'maxDays', 'minDays' ];
 
     @Option(name='--dry-run', usage='Don\'t change anything; just list what would be done')
     boolean dryRun;
