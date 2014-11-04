@@ -242,9 +242,9 @@ class ArtifactoryProcess {
             for( csvRec in csvIt ) {
                 if (fullLog) println("Step is ${csvRec}");
                 Map cols = csvRec.properties.columns;
-                String func = csvRec.function;
-                def hasFunc = cols.containsKey( 'function' );
-                def has = cols.containsKey( 'targetDir' );
+//                String func = csvRec.function;
+//                def hasFunc = cols.containsKey( 'function' );
+//                def has = cols.containsKey( 'targetDir' );
                 if( cols.containsKey( 'function'   ) && !noValue( csvRec.function   ) ) function   = csvRec.function  ;
                 if( cols.containsKey( 'value'      ) && !noValue( csvRec.value      ) ) value      = csvRec.value     ;
                 if( cols.containsKey( 'targetDir'  ) && !noValue( csvRec.targetDir  ) ) targetDir  = csvRec.targetDir ;
@@ -255,6 +255,11 @@ class ArtifactoryProcess {
                 if( cols.containsKey( 'userName'   ) && !noValue( csvRec.userName   ) ) userName   = csvRec.userName  ;
                 if( cols.containsKey( 'password'   ) && !noValue( csvRec.password   ) ) password   = csvRec.password  ;
                 if( cols.containsKey( 'mustHave'   ) ) mustHave   = csvRec.mustHave; // Can clear out mustHave value
+                if( cols.containsKey( 'minDays'   ) )  minDays    = csvRec.minDays;    // Can clear out mustHave value
+                if( cols.containsKey( 'maxDays'   ) )  maxDays    = csvRec.maxDays;    // Can clear out mustHave value
+
+//                if( minDays == null ) minDays = 0;
+//                if( maxDays == null ) maxDays = 0;
 
                 checkParms();
                 withClient { newClient ->
@@ -387,11 +392,11 @@ class ArtifactoryProcess {
         for( kid in fldr.children ) {
             boolean processed = false;
             if( function == 'size' ) {
-                boolean a = kid.folder;
+//                boolean a = kid.folder;
                 if( kid.folder ) {
-                    processArtifactsRecursive(path + kid.uri);
+                    processArtifactsRecursive( path + kid.uri );
                 } else {
-                    processSize(path + kid.uri);
+                    processSize( path + kid.uri );
                 }
                 if( domain == path ) {
                     int sizeM = thisSize / 1000000;
@@ -506,9 +511,12 @@ class ArtifactoryProcess {
                 }
 //                def now = new Date();
 //                println 'Now is a ' + now.class.name + ' with value ' + now
-//                println 'dtCreated is a ' + set.pathAndDate.dtCreated[ 0 ].class.name + ' with value ' + set.pathAndDate.dtCreated
+//                println 'dtCreated is a ' + set.pathAndDate[ 0 ].dtCreated.class.name + ' with value ' + set.pathAndDate[ 0 ].dtCreated
 //                Float diff = new Date() - set.pathAndDate[ 0 ].dtCreated;  // Compute age of artifact.
                 while( keep > 0 ) {
+//                    if( set.pathAndDate[ 0 ].dtCreated == null ) {
+//                        println "Whatsup with the null?"
+//                    }
                     if( state.maxDays > 0 && state.state != "" && set.branchName != "" && // Check if qualifies for maxDays
                         state.maxDays  < new Date() - set.pathAndDate[ 0 ].dtCreated ) { // Actual check for exceeding maxDays
                         numProcessed += processItem(set.pathAndDate[ 0 ].path);
@@ -517,6 +525,9 @@ class ArtifactoryProcess {
                     keep--;
                 }
                 while( set.pathAndDate.size() > 0 ) {
+                    if( set.pathAndDate[ 0 ].dtCreated == null ) {
+                        println "Whatsup with the null?"
+                    }
                     if( state.minDays <= 0 ||            // Check if qualifies for minDays
                         state.minDays  < new Date() - set.pathAndDate[ 0 ].dtCreated ) { // Actual check for qualifying minDays
                         numProcessed += processItem(set.pathAndDate[0].path);
