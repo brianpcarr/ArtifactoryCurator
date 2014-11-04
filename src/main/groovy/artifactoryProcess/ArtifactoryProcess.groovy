@@ -98,16 +98,16 @@ class ArtifactoryProcess {
     String maxInState;
 
 //  eg  --maxDay 14
-    @Option(name='--maxDay', metaVar='maxDay', usage="max days to mark / delete artifact (ignores counts), optional")
-    Float maxDay;
+    @Option(name='--maxDays', metaVar='maxDays', usage="max days to mark / delete artifact (ignores counts), optional")
+    Float maxDays = 0;
 
 //  eg  --minDay 3
-    @Option(name='--minDay', metaVar='minDay', usage="min days before mark / delete artifacts (ignores counts), optional")
-    Float minDay;
+    @Option(name='--minDays', metaVar='minDays', usage="min days before mark / delete artifacts (ignores counts), optional")
+    Float minDays = 0;
 
-//  eg  --offsetDay 1
-    @Option(name='--offsetDay', metaVar='offsetDay', usage="offset for min and max days to adjust for marking delays")
-    Float offsetDay;
+//  eg  --offsetDays 1
+    @Option(name='--offsetDays', metaVar='offsetDays', usage="offset for min and max days to adjust for marking delays")
+    Float offsetDays = 0;
 
 //  eg  --web-server 'http://artifactory01/'
     @Option(name='--web-server', metaVar='webServer', usage='URL to use to access Artifactory server')
@@ -267,46 +267,9 @@ class ArtifactoryProcess {
     }
 
     def checkParms() {
-        if( !noValue( maxInState ) ) {
-            stateSet.clear();                         // Throw away any previous states from last step
-            if( fullLog ) println( "Parsing ${maxInState}." )
-            File stateFile = new File( maxInState );
-            def RC = stateFile.withReader {
-                CsvIterator csvFile = CsvParser.parseCsv( it );
-                for( csvRec in csvFile ) {
-
-                    /* Set up default values for this new record. */
-
-                    String state = "";
-                    int count = 0;
-                    float minDays = 0;
-                    float maxDays = 0;
-                    String divider = "";
-
-                    /* Pull out any values provided (templated code). */
-
-                    Map cols = csvRec.properties.columns;
-//                  def hasState = cols.containsKey( 'state' );  // Useful if exploring csv objects
-                    if( cols.containsKey( 'State'   ) && !noValue( csvRec.State   ) ) state      = csvRec.State     ;
-                    if( cols.containsKey( 'Divider' ) && !noValue( csvRec.Divider ) ) divider    = csvRec.Divider   ;
-                    if( cols.containsKey( 'Count'   ) && !noValue( csvRec.Count   ) && csvRec.Count.integer ) count      = csvRec.Count.toInteger();   ;
-                    if( cols.containsKey( 'MinDays' ) && !noValue( csvRec.MinDays ) && csvRec.MinDays.float ) minDays    = csvRec.MinDays.toFloat();   ;
-                    if( cols.containsKey( 'MaxDays' ) && !noValue( csvRec.MaxDays ) && csvRec.MaxDays.float ) maxDays    = csvRec.MaxDays.toFloat();   ;
-                    if( count < 0 ) count = 0;
-                    if( minDays < 0 ) minDays = 0;
-                    if( maxDays < 0 ) maxDays = 0;
-
-                    List pathAndDate = [];
-                    List branches = [ pathAndDate ]
-
-                    if( fullLog ) println( "State ${state} allowed ${count} within ${minDays} and ${maxDays} days, branches by ${divider}" );
-                    // Iterator lies and claims there is a next when there isn't.  Force break on empty state.
-                    stateSet.add(
-                        new StateRecord( state: state, divider: divider, cnt: count, minDays: minDays, maxDays: maxDays, branches: branches ) );
-                }
-            }
-        }
+        statesFile();  // Process any maxInState file.
         String prefix;
+
         if( firstFunction == 'config' && function != 'config' ) {
             prefix = "While processing ${lastConfig} encountered, ";
         } else prefix = '';
@@ -330,6 +293,56 @@ class ArtifactoryProcess {
         }
         if( versionsToUse.size() == 0 && stateSet.size() == 0 && function != 'repoPrint' && function != 'size' ) {
             throw new CmdLineException( "${prefix}You must provide maxInState or a list of artifacts / versions to act upon." );
+        }
+        if( offsetDays == null || offsetDays < 0 ) {
+            throw new CmdLineException( "${prefix}offsetDays of ${offsetDays}, must be number greater than zero." );
+        }
+        if( maxDays == null || maxDays < 0 ) {
+            throw new CmdLineException( "${prefix}maxDays of ${maxDays}, must be number greater than zero." );
+        }
+        if( minDays == null || minDays < 0 ) {
+            throw new CmdLineException( "${prefix}minDays of ${minDays}, must be number greater than zero." );
+        }
+
+    }
+    void statesFile() {  // Process any maxInState file.
+        if( !noValue( maxInState ) ) {
+            stateSet.clear();                         // Throw away any previous states from last step
+            if( fullLog ) println( "Parsing ${maxInState}." )
+            File stateFile = new File( maxInState );
+            def RC = stateFile.withReader {
+                CsvIterator csvFile = CsvParser.parseCsv( it );
+                for( csvRec in csvFile ) {
+
+                    /* Set up default values for this new record. */
+
+                    String state = "";
+                    int count = 0;
+                    float myMinDays = minDays;
+                    float myMaxDays = maxDays;
+                    String divider = "";
+
+                    /* Pull out any values provided (templated code). */
+
+                    Map cols = csvRec.properties.columns;
+//                  def hasState = cols.containsKey( 'state' );  // Useful if exploring csv objects
+                    if( cols.containsKey( 'State'   ) && !noValue( csvRec.State   ) ) state      = csvRec.State     ;
+                    if( cols.containsKey( 'Divider' ) && !noValue( csvRec.Divider ) ) divider    = csvRec.Divider   ;
+                    if( cols.containsKey( 'Count'   ) && !noValue( csvRec.Count   ) && csvRec.Count.integer ) count      = csvRec.Count.toInteger();   ;
+                    if( cols.containsKey( 'MinDays' ) && !noValue( csvRec.MinDays ) && csvRec.MinDays.float ) myMinDays    = csvRec.MinDays.toFloat() - offsetDays;   ;
+                    if( cols.containsKey( 'MaxDays' ) && !noValue( csvRec.MaxDays ) && csvRec.MaxDays.float ) myMaxDays    = csvRec.MaxDays.toFloat() - offsetDays;   ;
+                    if( count < 0 ) count = 0;
+                    if( myMinDays < 0 ) myMinDays = 0;
+                    if( myMaxDays < 0 ) myMaxDays = 0;
+
+                    List branches = [];
+
+                    if( fullLog ) println( "State ${state} allowed ${count} within ${myMinDays} and ${myMaxDays} days, branches by ${divider}" );
+                    // Iterator lies and claims there is a next when there isn't.  Force break on empty state.
+                    stateSet.add(
+                            new StateRecord( state: state, divider: divider, cnt: count, minDays: myMinDays, maxDays: myMaxDays, branches: branches ) );
+                }
+            }
         }
 
     }
@@ -491,12 +504,23 @@ class ArtifactoryProcess {
                     set.pathAndDate.sort() { a, b -> b.dtCreated <=> a.dtCreated };
                     // Sort newest first to preserve newest
                 }
+//                def now = new Date();
+//                println 'Now is a ' + now.class.name + ' with value ' + now
+//                println 'dtCreated is a ' + set.pathAndDate.dtCreated[ 0 ].class.name + ' with value ' + set.pathAndDate.dtCreated
+//                Float diff = new Date() - set.pathAndDate[ 0 ].dtCreated;  // Compute age of artifact.
                 while( keep > 0 ) {
+                    if( state.maxDays > 0 && state.state != "" && set.branchName != "" && // Check if qualifies for maxDays
+                        state.maxDays  < new Date() - set.pathAndDate[ 0 ].dtCreated ) { // Actual check for exceeding maxDays
+                        numProcessed += processItem(set.pathAndDate[ 0 ].path);
+                    }
                     set.pathAndDate.remove(0);
                     keep--;
                 }
                 while( set.pathAndDate.size() > 0 ) {
-                    numProcessed += processItem(set.pathAndDate[0].path);
+                    if( state.minDays <= 0 ||            // Check if qualifies for minDays
+                        state.minDays  < new Date() - set.pathAndDate[ 0 ].dtCreated ) { // Actual check for qualifying minDays
+                        numProcessed += processItem(set.pathAndDate[0].path);
+                    }
                     set.pathAndDate.remove(0);
                 }
             }
@@ -505,7 +529,7 @@ class ArtifactoryProcess {
     }
 
     private boolean processSize( String path ) {
-        org.jfrog.artifactory.client.impl.ItemHandleImpl folder = repo.folder( path );
+//        org.jfrog.artifactory.client.impl.ItemHandleImpl folder = repo.folder( path );
         boolean isJar = path.endsWith( '.jar' );
         if( isJar  ) {
             org.jfrog.artifactory.client.impl.ItemHandleImpl item = repo.file( path );
